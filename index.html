@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>greg.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1430; --bg2:#121b3d; --card:#172248; --line:#26336193;
+    --ink:#f4ecdb; --muted:#9ea6c4; --amber:#ffb547; --red:#e3262f; --red-d:#9c1219;
+    --green:#4fd18b; --radius:18px;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--display); color:var(--ink); min-height:100vh;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #2a2f6b55, transparent 60%),
+      radial-gradient(900px 400px at -10% 110%, #ffb54718, transparent 60%),
+      var(--bg);
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:20px 20px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 22px}
+  .logo{font-weight:800;font-size:30px;letter-spacing:-.03em;display:flex;align-items:baseline;gap:2px}
+  .logo .dot{color:var(--amber)}
+  .logo small{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--muted);margin-left:12px;letter-spacing:0}
+  .who{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+  .chip{background:var(--card);border:1px solid var(--line);padding:7px 12px;border-radius:999px;color:var(--ink);font-weight:600}
+  .link{background:none;border:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;padding:0}
+  .link:hover{color:var(--ink)}
+
+  .banner{display:none;background:#3b1d24;border:1px solid #7a2a35;color:#ffd6db;padding:10px 14px;border-radius:12px;margin-bottom:18px;font-size:14px}
+  .banner.show{display:block}
+
+  .hero{display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:22px;align-items:stretch}
+  @media (max-width:820px){.hero{grid-template-columns:1fr}.cam{aspect-ratio:4/3}.cam img{object-position:50% 45%}.logo small{display:none}.clock{text-align:left}}
+
+  /* ---------- the dorm cam ---------- */
+  .cam{position:relative;border-radius:var(--radius);overflow:hidden;background:#000;border:1px solid var(--line);aspect-ratio:360/560;box-shadow:0 30px 60px -30px #000c}
+  .cam img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;display:block;filter:saturate(.85) contrast(1.05)}
+  .cam::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+    background:repeating-linear-gradient(0deg,#0000 0 2px,#00000022 2px 3px);mix-blend-mode:multiply}
+  .cam::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+    background:radial-gradient(ellipse at center,transparent 55%,#000a 100%)}
+  .cam .hud{position:absolute;left:12px;right:12px;z-index:3;font-family:var(--mono);font-size:12px;color:#fff;text-shadow:0 1px 2px #000;display:flex;justify-content:space-between;letter-spacing:.04em}
+  .cam .hud.top{top:12px}.cam .hud.bot{bottom:12px}
+  .rec{display:inline-flex;align-items:center;gap:6px}
+  .rec i{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block;animation:blink 1.2s steps(2,start) infinite}
+  @keyframes blink{to{visibility:hidden}}
+  .zzz{position:absolute;z-index:3;top:28%;left:58%;font-weight:800;color:#fff;pointer-events:none}
+  .zzz span{position:absolute;opacity:0;animation:float 3.6s ease-in infinite;text-shadow:0 2px 6px #0008}
+  .zzz span:nth-child(1){font-size:18px;animation-delay:0s}
+  .zzz span:nth-child(2){font-size:24px;animation-delay:1.2s}
+  .zzz span:nth-child(3){font-size:32px;animation-delay:2.4s}
+  @keyframes float{0%{transform:translate(0,0);opacity:0}15%{opacity:.95}100%{transform:translate(46px,-90px);opacity:0}}
+  .stamp{position:absolute;z-index:4;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-14deg) scale(1.4);opacity:0;
+    border:5px solid var(--green);color:var(--green);font-weight:800;font-size:40px;letter-spacing:.06em;padding:4px 16px;border-radius:10px;background:#0d143099;
+    transition:all .35s cubic-bezier(.2,1.6,.4,1);text-align:center;line-height:1}
+  .stamp small{display:block;font-family:var(--mono);font-size:13px;letter-spacing:.02em;margin-top:4px;font-weight:600}
+  .cam.awake .stamp{opacity:1;transform:translate(-50%,-50%) rotate(-14deg) scale(1)}
+  .cam.awake .zzz{display:none}
+  .cam.awake img{filter:saturate(.5) brightness(.75)}
+
+  /* ---------- control panel ---------- */
+  .panel{display:flex;flex-direction:column;gap:18px}
+  .card{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .status{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .eyebrow{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+  .status h1{margin:6px 0 4px;font-size:clamp(30px,4.4vw,46px);line-height:1;letter-spacing:-.03em;font-weight:800}
+  .status h1 .asleep{color:var(--amber)} .status h1 .awake{color:var(--green)}
+  .status p{margin:0;color:var(--muted);font-size:15px}
+  .clock{text-align:right}
+  .clock .t{font-family:var(--mono);font-size:26px;font-weight:600}
+  .clock .d{color:var(--muted);font-size:13px}
+
+  .action{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center}
+  @media (max-width:560px){.action{grid-template-columns:1fr;justify-items:center;text-align:center}}
+  .bigred{
+    --s:190px; width:var(--s);height:var(--s);border-radius:50%;border:none;cursor:pointer;position:relative;
+    background:radial-gradient(circle at 35% 30%,#ff6a6f 0%,var(--red) 45%,#b3141c 100%);
+    box-shadow:0 12px 0 var(--red-d),0 22px 40px -10px #e3262f88,inset 0 -6px 14px #0004,inset 0 4px 10px #fff4;
+    color:#fff;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.05;letter-spacing:.01em;text-transform:uppercase;
+    transition:transform .08s, box-shadow .08s; outline-offset:8px;
+  }
+  .bigred:hover{background:radial-gradient(circle at 35% 30%,#ff7a7f 0%,#ee2c35 45%,#bd1720 100%)}
+  .bigred:active{transform:translateY(9px);box-shadow:0 3px 0 var(--red-d),0 8px 18px -8px #e3262f88,inset 0 -4px 10px #0004,inset 0 4px 10px #fff3}
+  .bigred:disabled{cursor:not-allowed;background:radial-gradient(circle at 35% 30%,#7a5a5c 0%,#5a3a3d 50%,#3e2629 100%);box-shadow:0 4px 0 #2a1a1c,inset 0 -6px 14px #0004;transform:translateY(8px);color:#ffffff88}
+  .bigred .sub{display:block;font-size:11px;font-family:var(--mono);font-weight:600;letter-spacing:.1em;margin-top:6px;opacity:.85}
+  .btn-zone{padding:14px;border-radius:50%;background:#0a0f24;box-shadow:inset 0 3px 10px #000,0 0 0 2px #2a3566;display:flex;line-height:0}
+  .action h3{margin:0 0 6px;font-size:20px}
+  .action p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.5}
+
+  form.predict{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  input[type=time],input[type=text]{
+    background:#0b1129;border:1px solid #33407a;color:var(--ink);border-radius:12px;padding:12px 14px;font:600 18px var(--mono);min-width:0;color-scheme:dark;
+  }
+  input:focus{outline:2px solid var(--amber);outline-offset:1px}
+  .btn{background:var(--amber);color:#1d1404;border:none;border-radius:12px;padding:13px 18px;font:800 15px var(--display);cursor:pointer;letter-spacing:.01em}
+  .btn:hover{filter:brightness(1.07)} .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid #3a4680}
+  .btn.red{background:var(--red);color:#fff}
+  .hint{font-size:13px;color:var(--muted);margin-top:8px;min-height:18px}
+  .hint.err{color:#ff9aa1} .hint.ok{color:var(--green)}
+  .mine{font-family:var(--mono);color:var(--amber);font-weight:600}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#0f1736;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .stat b{display:block;font-family:var(--mono);font-size:20px;margin-top:4px}
+
+  /* ---------- boards ---------- */
+  .boards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+  @media (max-width:820px){.boards{grid-template-columns:1fr}}
+  .card h2{margin:0 0 4px;font-size:22px;letter-spacing:-.02em}
+  .card .sub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;text-align:left;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+  td{padding:11px 8px;border-bottom:1px solid #26336155}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  td.rank{width:38px;font-family:var(--mono);color:var(--muted)}
+  tr.me td{background:#ffb5470f}
+  tr.first td{color:var(--amber);font-weight:600}
+  .medal{font-size:18px}
+  .empty{color:var(--muted);text-align:center;padding:26px 8px;font-size:14px}
+  .pill{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:999px;background:#ffffff12;color:var(--muted)}
+  .undo{margin-top:12px;font-size:13px;color:var(--muted)}
+
+  /* ---------- modals ---------- */
+  .modal{position:fixed;inset:0;background:#05081acc;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal.show{display:flex}
+  .dialog{background:var(--card);border:1px solid #33407a;border-radius:22px;padding:28px;max-width:420px;width:100%;box-shadow:0 40px 80px -20px #000}
+  .dialog h2{margin:0 0 8px;font-size:28px;letter-spacing:-.03em}
+  .dialog p{margin:0 0 18px;color:var(--muted);line-height:1.5}
+  .dialog .row{display:flex;gap:10px;flex-wrap:wrap}
+  .dialog input{width:100%;margin-bottom:12px}
+  .dialog .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 38%;border:2px solid var(--amber);margin-bottom:14px}
+  footer{margin-top:34px;text-align:center;color:#6f789c;font-size:12.5px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">greg<span class="dot">.</span>io <small>the official greg wake-up market</small></div>
+    <div class="who" id="who" hidden>
+      <span class="chip" id="whoName"></span>
+      <button class="link" id="switchName">switch</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="hero">
+    <div class="cam" id="cam">
+      <img src="/greg.jpg" alt="Greg, asleep">
+      <div class="hud top"><span class="rec"><i></i> LIVE · DORM CAM 01</span><span>SUBJECT: GREG</span></div>
+      <div class="zzz"><span>z</span><span>z</span><span>Z</span></div>
+      <div class="stamp" id="stamp">AWAKE<small id="stampTime"></small></div>
+      <div class="hud bot"><span id="camDate"></span><span id="camTime"></span></div>
+    </div>
+
+    <div class="panel">
+      <div class="card status">
+        <div>
+          <div class="eyebrow">Current status</div>
+          <h1 id="statusLine"><span class="asleep">Still asleep.</span></h1>
+          <p id="statusSub">No sightings yet today. Get your guess in.</p>
+        </div>
+        <div class="clock">
+          <div class="eyebrow">Eastern time</div>
+          <div class="t" id="clock">--:--</div>
+          <div class="d" id="dateLabel"></div>
+        </div>
+      </div>
+
+      <div class="card action">
+        <div class="btn-zone">
+          <button class="bigred" id="reportBtn" aria-label="Report that Greg is awake">Report<br>wake up<span class="sub">GREG IS UP</span></button>
+        </div>
+        <div>
+          <h3 id="predTitle">Your prediction for today</h3>
+          <p id="predHelp">When will Greg wake up and start his day? Guesses must be for a time that hasn't happened yet, and they lock the moment someone hits the red button.</p>
+          <form class="predict" id="predForm">
+            <input type="time" id="predTime" required aria-label="Predicted wake-up time">
+            <button class="btn" id="predBtn" type="submit">Lock it in</button>
+          </form>
+          <div class="hint" id="predHint"></div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat"><span class="eyebrow">Guesses today</span><b id="stGuesses">0</b></div>
+        <div class="stat"><span class="eyebrow">Crowd average</span><b id="stCrowd">—</b></div>
+        <div class="stat"><span class="eyebrow">Greg's avg wake</span><b id="stAvg">—</b></div>
+        <div class="stat"><span class="eyebrow">Latest ever</span><b id="stLatest">—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="boards">
+    <div class="card">
+      <h2>Today's board</h2>
+      <p class="sub" id="todaySub">Ranked by how close each guess lands once Greg is reported awake.</p>
+      <table>
+        <thead><tr><th></th><th>Name</th><th class="num">Guess</th><th class="num" id="missHead">Miss</th></tr></thead>
+        <tbody id="todayBody"></tbody>
+      </table>
+      <div class="undo" id="undoWrap" hidden>False alarm? <button class="link" id="undoBtn">Undo today's wake-up report</button></div>
+    </div>
+
+    <div class="card">
+      <h2>All-time leaderboard</h2>
+      <p class="sub">3 points for the closest guess each day, 2 for second, 1 for third. Ties share.</p>
+      <table>
+        <thead><tr><th></th><th>Name</th><th class="num">Pts</th><th class="num">Wins</th><th class="num">Avg miss</th></tr></thead>
+        <tbody id="allBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>greg.io · predictions are final · sleep is not</footer>
+</div>
+
+<!-- sign-in -->
+<div class="modal" id="signin">
+  <form class="dialog" id="signinForm">
+    <img class="avatar" src="/greg.jpg" alt="">
+    <h2>Who's betting?</h2>
+    <p>Sign in with your name so your guesses count toward the leaderboard. Use the same name every time.</p>
+    <input type="text" id="nameInput" maxlength="24" placeholder="Your name" autocomplete="nickname" required>
+    <div class="row"><button class="btn" type="submit">Enter greg.io</button></div>
+  </form>
+</div>
+
+<!-- report confirm -->
+<div class="modal" id="confirm">
+  <form class="dialog" id="confirmForm">
+    <h2>Greg is awake?</h2>
+    <p>This ends today's round and locks every prediction. If you only just noticed, set the time you think he actually got up.</p>
+    <input type="time" id="wakeTime" required aria-label="Wake-up time">
+    <div class="hint err" id="wakeHint"></div>
+    <div class="row">
+      <button class="btn red" type="submit">Yes, he's up</button>
+      <button class="btn ghost" type="button" id="cancelReport">Not yet</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(() => {
+  const TZ = 'America/New_York';
+  const $ = id => document.getElementById(id);
+  const fmtParts = new Intl.DateTimeFormat('en-US', {timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23'});
+  function nowET(){
+    const p = {}; fmtParts.formatToParts(new Date()).forEach(x => p[x.type] = x.value);
+    return {date:`${p.year}-${p.month}-${p.day}`, h:+p.hour, m:+p.minute, s:+p.second, mins:(+p.hour)*60 + (+p.minute)};
+  }
+  const fmtMins = m => { const h = Math.floor(m/60), mm = m%60; const ap = h < 12 ? 'AM' : 'PM'; return `${((h+11)%12)+1}:${String(mm).padStart(2,'0')} ${ap}`; };
+  const fmtMiss = d => d === 0 ? 'exact!' : (d < 60 ? `${d}m` : `${Math.floor(d/60)}h ${String(d%60).padStart(2,'0')}m`);
+  const toInput = m => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+  const fromInput = v => { const [h,m] = v.split(':').map(Number); return h*60+m; };
+  const slug = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'anon';
+  const prettyDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'});
+  function el(tag, attrs={}, ...kids){ const e = document.createElement(tag); for (const k in attrs){ if(k==='class') e.className=attrs[k]; else e.setAttribute(k, attrs[k]); } kids.forEach(k => e.append(k)); return e; }
+
+  // ---------- identity ----------
+  let name = '';
+  try { name = localStorage.getItem('gregio.name') || ''; } catch(e){}
+  function setName(n){ name = n.trim().replace(/\s+/g,' ').slice(0,24); try{ localStorage.setItem('gregio.name', name); }catch(e){} $('whoName').textContent = name; $('who').hidden = !name; render(); }
+  function askName(){ $('nameInput').value = name; $('signin').classList.add('show'); setTimeout(()=>$('nameInput').focus(), 50); }
+  $('signinForm').addEventListener('submit', e => { e.preventDefault(); const v = $('nameInput').value.trim(); if(!v) return; setName(v); $('signin').classList.remove('show'); });
+  $('switchName').addEventListener('click', askName);
+  if (name){ $('whoName').textContent = name; $('who').hidden = false; } else askName();
+
+  // ---------- data (Vercel API + polling) ----------
+  let db = true, preds = [], days = {}, readOnly = false, loaded = false;
+  let today = nowET().date;
+  function banner(msg){ const b = $('banner'); b.textContent = msg || ''; b.classList.toggle('show', !!msg); }
+
+  async function refresh(){
+    try {
+      const r = await fetch('/api/state', {cache:'no-store'});
+      if (!r.ok) throw new Error();
+      const j = await r.json();
+      preds = j.predictions || []; days = j.days || {}; loaded = true;
+      banner(''); render();
+    } catch(e){ if (!loaded) banner("Can't reach the scoreboard right now. Retrying…"); }
+  }
+  async function post(path, body){
+    const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'That didn\u2019t go through. Try again.');
+    return j;
+  }
+  refresh();
+  setInterval(() => { if (!document.hidden) refresh(); }, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+  // ---------- predictions ----------
+  $('predForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const hint = $('predHint');
+    if (!name){ askName(); return; }
+    const n = nowET();
+    if (days[n.date]){ hint.textContent = 'Too late. Greg is already up.'; hint.className='hint err'; return; }
+    const v = $('predTime').value; if (!v) return;
+    const mins = fromInput(v);
+    if (mins <= n.mins){ hint.textContent = `That time has already passed. Pick something after ${fmtMins(n.mins)}.`; hint.className='hint err'; return; }
+    $('predBtn').disabled = true;
+    try {
+      await post('/api/predict', {name, mins});
+      hint.textContent = `Locked in: ${fmtMins(mins)}. Good luck.`; hint.className='hint ok';
+      await refresh();
+    } catch(err){ hint.textContent = err.message; hint.className = 'hint err'; }
+    $('predBtn').disabled = false;
+  });
+
+  // ---------- reporting ----------
+  $('reportBtn').addEventListener('click', () => {
+    if (!name){ askName(); return; }
+    const n = nowET();
+    $('wakeTime').value = toInput(n.mins); $('wakeHint').textContent = '';
+    $('confirm').classList.add('show');
+  });
+  $('cancelReport').addEventListener('click', () => $('confirm').classList.remove('show'));
+  $('confirmForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const n = nowET(); const mins = fromInput($('wakeTime').value);
+    if (mins > n.mins){ $('wakeHint').textContent = "That's in the future. He can't have woken up yet."; return; }
+    try {
+      await post('/api/report', {name, mins});
+      $('confirm').classList.remove('show');
+      await refresh();
+    } catch(err){ $('wakeHint').textContent = err.message; }
+  });
+  $('undoBtn').addEventListener('click', async () => {
+    try { await post('/api/undo', {}); await refresh(); } catch(e){}
+  });
+
+  // ---------- scoring ----------
+  function rankDay(date){
+    const w = days[date]; if (!w) return null;
+    const rows = preds.filter(p => p.date === date && typeof p.mins === 'number')
+      .map(p => ({...p, miss:Math.abs(p.mins - w.wakeMins)}))
+      .sort((a,b) => a.miss - b.miss || a.at - b.at);
+    let rank = 0, last = -1;
+    rows.forEach((r,i) => { if (r.miss !== last){ rank = i+1; last = r.miss; } r.rank = rank; });
+    return rows;
+  }
+  function allTime(){
+    const t = {};
+    Object.keys(days).forEach(date => {
+      (rankDay(date) || []).forEach(r => {
+        const k = r.key || slug(r.name);
+        const s = t[k] || (t[k] = {name:r.name, pts:0, wins:0, miss:0, n:0});
+        s.name = r.name; s.n++; s.miss += r.miss;
+        if (r.rank === 1){ s.pts += 3; s.wins++; } else if (r.rank === 2) s.pts += 2; else if (r.rank === 3) s.pts += 1;
+      });
+    });
+    return Object.values(t).sort((a,b) => b.pts - a.pts || b.wins - a.wins || (a.miss/a.n) - (b.miss/b.n));
+  }
+
+  // ---------- render ----------
+  const medal = r => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : String(r);
+  function render(){
+    const n = nowET(); today = n.date;
+    const w = days[today];
+    const awake = !!w;
+    const mineKey = slug(name || '');
+    const todays = preds.filter(p => p.date === today && typeof p.mins === 'number');
+
+    // status
+    $('cam').classList.toggle('awake', awake);
+    $('stampTime').textContent = awake ? fmtMins(w.wakeMins) : '';
+    $('statusLine').innerHTML = awake ? '<span class="awake">Greg is up.</span>' : '<span class="asleep">Still asleep.</span>';
+    $('statusSub').textContent = awake
+      ? `Spotted awake at ${fmtMins(w.wakeMins)}, reported by ${w.reportedBy || 'someone'}.`
+      : (todays.length ? `${todays.length} ${todays.length===1?'guess':'guesses'} on the board. Eyes on the bed.` : 'No sightings yet today. Get your guess in.');
+    $('reportBtn').disabled = awake || readOnly || !db;
+    $('undoWrap').hidden = !awake || readOnly || !db;
+
+    // prediction form
+    const mine = todays.find(p => p.key === mineKey);
+    const locked = awake || readOnly || !db;
+    $('predTime').disabled = locked; $('predBtn').disabled = locked;
+    $('predBtn').textContent = mine ? 'Change guess' : 'Lock it in';
+    if (awake) $('predHelp').textContent = 'Round over. Predictions reopen tomorrow at midnight.';
+    else $('predHelp').textContent = "When will Greg wake up and start his day? Guesses must be for a time that hasn't happened yet, and they lock the moment someone hits the red button.";
+    if (mine && !$('predHint').textContent){ $('predHint').innerHTML = ''; $('predHint').append('Your guess: ', el('span',{class:'mine'}, fmtMins(mine.mins))); $('predHint').className='hint'; }
+    if (mine && document.activeElement !== $('predTime') && !$('predTime').value) $('predTime').value = toInput(mine.mins);
+
+    // stats
+    $('stGuesses').textContent = todays.length;
+    $('stCrowd').textContent = todays.length ? fmtMins(Math.round(todays.reduce((s,p)=>s+p.mins,0)/todays.length)) : '—';
+    const wakes = Object.values(days).map(d => d.wakeMins).filter(x => typeof x === 'number');
+    $('stAvg').textContent = wakes.length ? fmtMins(Math.round(wakes.reduce((a,b)=>a+b,0)/wakes.length)) : '—';
+    $('stLatest').textContent = wakes.length ? fmtMins(Math.max(...wakes)) : '—';
+
+    // today's board
+    const tb = $('todayBody'); tb.replaceChildren();
+    $('missHead').textContent = awake ? 'Miss' : '';
+    $('todaySub').textContent = awake ? `Final results. Greg woke at ${fmtMins(w.wakeMins)}.` : 'Ranked by how close each guess lands once Greg is reported awake.';
+    const rows = awake ? rankDay(today) : todays.slice().sort((a,b) => a.mins - b.mins);
+    if (!rows.length){
+      tb.append(el('tr',{}, el('td',{colspan:'4', class:'empty'}, !loaded ? 'Loading the scoreboard…' : 'No guesses yet. Be the first.')));
+    } else rows.forEach((r,i) => {
+      const tr = el('tr',{class:[r.key===mineKey?'me':'', awake&&r.rank===1?'first':''].join(' ').trim()},
+        el('td',{class:'rank'}, awake ? el('span',{class:r.rank<=3?'medal':''}, medal(r.rank)) : String(i+1)),
+        el('td',{}, r.name || 'Anon'),
+        el('td',{class:'num'}, fmtMins(r.mins)),
+        el('td',{class:'num'}, awake ? fmtMiss(r.miss) : el('span',{class:'pill'}, r.mins < n.mins ? 'busted' : 'live')));
+      tb.append(tr);
+    });
+
+    // all-time
+    const ab = $('allBody'); ab.replaceChildren();
+    const at = allTime();
+    if (!at.length) ab.append(el('tr',{}, el('td',{colspan:'5', class:'empty'}, 'No completed rounds yet. Points land when Greg is first reported awake.')));
+    else at.forEach((s,i) => {
+      ab.append(el('tr',{class:[slug(s.name)===mineKey?'me':'', i===0?'first':''].join(' ').trim()},
+        el('td',{class:'rank'}, i<3 ? el('span',{class:'medal'}, medal(i+1)) : String(i+1)),
+        el('td',{}, s.name),
+        el('td',{class:'num'}, String(s.pts)),
+        el('td',{class:'num'}, String(s.wins)),
+        el('td',{class:'num'}, fmtMiss(Math.round(s.miss/s.n)))));
+    });
+  }
+
+  // ---------- clock ----------
+  let lastDate = today, lastMin = -1;
+  function tick(){
+    const n = nowET();
+    const t = `${((n.h+11)%12)+1}:${String(n.m).padStart(2,'0')}:${String(n.s).padStart(2,'0')} ${n.h<12?'AM':'PM'}`;
+    $('clock').textContent = t; $('camTime').textContent = t;
+    $('dateLabel').textContent = prettyDate(n.date);
+    $('camDate').textContent = n.date.replace(/-/g,'.');
+    if (n.date !== lastDate || n.mins !== lastMin){
+      if (n.date !== lastDate){ $('predTime').value = ''; $('predHint').textContent = ''; }
+      lastDate = n.date; lastMin = n.mins; render();
+    }
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
