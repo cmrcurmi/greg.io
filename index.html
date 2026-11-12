@@ -15,6 +15,7 @@
     --display:'Bricolage Grotesque',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   html,body{margin:0}
   body{
     font-family:var(--display); color:var(--ink); min-height:100vh;
@@ -138,6 +139,19 @@
   .dialog .row{display:flex;gap:10px;flex-wrap:wrap}
   .dialog input{width:100%;margin-bottom:12px}
   .dialog .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 38%;border:2px solid var(--amber);margin-bottom:14px}
+  /* ---------- admin ---------- */
+  #admin{margin-top:22px;border-color:#7a2a35}
+  #admin .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+  #admin input[type=password]{background:#0b1129;border:1px solid #33407a;color:var(--ink);border-radius:12px;padding:11px 14px;font:600 15px var(--mono)}
+  .aday{border-top:1px solid var(--line);padding:16px 0 6px}
+  .aday h3{margin:0 0 8px;font-size:17px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .aday .wake{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted);margin-bottom:8px}
+  .aday .wake input{padding:7px 10px;font-size:14px}
+  .sm{background:transparent;color:var(--ink);border:1px solid #3a4680;border-radius:9px;padding:6px 11px;font:600 13px var(--display);cursor:pointer}
+  .sm:hover{border-color:var(--amber)} .sm.del{border-color:#7a2a35;color:#ffb3b9} .sm.del:hover{background:#3b1d24}
+  .arow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #26336155;font-size:14.5px}
+  .arow span.t{font-family:var(--mono);color:var(--muted);margin-left:auto;margin-right:10px}
+  footer a{color:inherit}
   footer{margin-top:34px;text-align:center;color:#6f789c;font-size:12.5px;font-family:var(--mono)}
 </style>
 </head>
@@ -221,7 +235,21 @@
     </div>
   </section>
 
-  <footer>greg.io · predictions are final · sleep is not</footer>
+  <section class="card" id="admin" hidden>
+    <h2>Admin</h2>
+    <p class="sub">Delete bad guesses or wake-up reports, or correct a wake-up time. Changes apply for everyone immediately.</p>
+    <form class="bar" id="adminLogin">
+      <input type="password" id="adminPw" placeholder="Admin password" autocomplete="current-password">
+      <button class="btn" type="submit">Unlock</button>
+      <span class="hint" id="adminHint"></span>
+    </form>
+    <div id="adminBody" hidden>
+      <div class="bar"><span class="hint ok" id="adminMsg">Unlocked.</span><button class="link" id="adminLock">Lock</button></div>
+      <div id="adminDays"></div>
+    </div>
+  </section>
+
+  <footer>greg.io · predictions are final · sleep is not · <a href="#admin">admin</a></footer>
 </div>
 
 <!-- sign-in -->
@@ -340,6 +368,68 @@
     try { await post('/api/undo', {}); await refresh(); } catch(e){}
   });
 
+  // ---------- admin ----------
+  let adminPw = '';
+  try { adminPw = sessionStorage.getItem('gregio.admin') || ''; } catch(e){}
+  async function adminCall(action, extra={}){
+    const r = await fetch('/api/admin', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:adminPw, action, ...extra})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'That didn\u2019t work.');
+    return j;
+  }
+  function showAdmin(){
+    const on = location.hash === '#admin';
+    $('admin').hidden = !on;
+    $('adminLogin').hidden = !!adminPw; $('adminBody').hidden = !adminPw;
+    if (on){ renderAdmin(); $('admin').scrollIntoView({behavior:'smooth'}); }
+  }
+  window.addEventListener('hashchange', showAdmin);
+  $('adminLogin').addEventListener('submit', async e => {
+    e.preventDefault();
+    adminPw = $('adminPw').value;
+    try { await adminCall('ping'); try{ sessionStorage.setItem('gregio.admin', adminPw); }catch(e){} $('adminHint').textContent=''; showAdmin(); }
+    catch(err){ adminPw=''; $('adminHint').textContent = err.message; $('adminHint').className='hint err'; }
+  });
+  $('adminLock').addEventListener('click', () => { adminPw=''; try{ sessionStorage.removeItem('gregio.admin'); }catch(e){} showAdmin(); });
+  async function adminDo(action, extra, label){
+    $('adminMsg').textContent = 'Working…'; $('adminMsg').className = 'hint';
+    try { await adminCall(action, extra); if (document.activeElement) document.activeElement.blur(); await refresh(); $('adminMsg').textContent = label; $('adminMsg').className='hint ok'; }
+    catch(err){ $('adminMsg').textContent = err.message; $('adminMsg').className='hint err';
+      if (/password/i.test(err.message)){ adminPw=''; try{ sessionStorage.removeItem('gregio.admin'); }catch(e){} showAdmin(); } }
+  }
+  function renderAdmin(){
+    if ($('admin').hidden || !adminPw) return;
+    const box = $('adminDays');
+    if (box.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return; // don't wipe a time being typed
+    box.replaceChildren();
+    const dates = [...new Set([...Object.keys(days), ...preds.map(p => p.date)])].sort().reverse();
+    if (!dates.length){ box.append(el('p',{class:'empty'}, 'No data yet.')); return; }
+    dates.forEach(date => {
+      const w = days[date];
+      const wrap = el('div',{class:'aday'}, el('h3',{}, prettyDate(date)));
+      const wake = el('div',{class:'wake'});
+      const t = el('input',{type:'time'}); if (w) t.value = toInput(w.wakeMins);
+      const save = el('button',{class:'sm', type:'button'}, w ? 'Save wake time' : 'Set wake time');
+      save.addEventListener('click', () => { if(!t.value) return; const m = fromInput(t.value);
+        adminDo('setDay', {date, mins:m}, `Wake time for ${prettyDate(date)} set to ${fmtMins(m)}.`); });
+      wake.append(w ? `Woke ${fmtMins(w.wakeMins)} (reported by ${w.reportedBy || 'someone'})` : 'No wake-up reported', t, save);
+      if (w){
+        const del = el('button',{class:'sm del', type:'button'}, 'Delete report');
+        del.addEventListener('click', () => { if (confirm(`Delete the wake-up report for ${prettyDate(date)}? The day reopens if it's today.`)) adminDo('deleteDay', {date}, 'Wake-up report deleted.'); });
+        wake.append(del);
+      }
+      wrap.append(wake);
+      const ps = preds.filter(p => p.date === date).sort((a,b) => a.mins - b.mins);
+      if (!ps.length) wrap.append(el('div',{class:'arow'}, el('span',{class:'hint'}, 'No guesses.')));
+      ps.forEach(p => {
+        const del = el('button',{class:'sm del', type:'button'}, 'Delete');
+        del.addEventListener('click', () => { if (confirm(`Delete ${p.name}'s guess of ${fmtMins(p.mins)}?`)) adminDo('deletePrediction', {id:`${p.date}__${p.key}`}, `Deleted ${p.name}'s guess.`); });
+        wrap.append(el('div',{class:'arow'}, el('span',{}, p.name || 'Anon'), el('span',{class:'t'}, fmtMins(p.mins)), del));
+      });
+      box.append(wrap);
+    });
+  }
+
   // ---------- scoring ----------
   function rankDay(date){
     const w = days[date]; if (!w) return null;
@@ -427,6 +517,7 @@
         el('td',{class:'num'}, String(s.wins)),
         el('td',{class:'num'}, fmtMiss(Math.round(s.miss/s.n)))));
     });
+    renderAdmin();
   }
 
   // ---------- clock ----------
@@ -442,7 +533,7 @@
       lastDate = n.date; lastMin = n.mins; render();
     }
   }
-  tick(); setInterval(tick, 1000);
+  tick(); setInterval(tick, 1000); showAdmin();
 })();
 </script>
 </body>
