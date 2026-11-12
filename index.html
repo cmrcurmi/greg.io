@@ -374,7 +374,7 @@
   async function adminCall(action, extra={}){
     const r = await fetch('/api/admin', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:adminPw, action, ...extra})});
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || 'That didn\u2019t work.');
+    if (!r.ok) throw new Error(j.error || `Server error ${r.status}${r.status===404?': /api/admin is not live yet':''}.`);
     return j;
   }
   function showAdmin(){
