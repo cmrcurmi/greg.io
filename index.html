@@ -139,6 +139,9 @@
   .dialog .row{display:flex;gap:10px;flex-wrap:wrap}
   .dialog input{width:100%;margin-bottom:12px}
   .dialog .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 38%;border:2px solid var(--amber);margin-bottom:14px}
+  /* ---------- announce ---------- */
+  .announce{margin-top:14px;background:var(--green);color:#06210f;display:inline-flex;align-items:center;gap:8px}
+  .preview{white-space:pre-wrap;background:#0b1129;border:1px solid #33407a;border-radius:12px;padding:14px;font:500 14.5px/1.5 var(--display);margin:0 0 16px;color:var(--ink)}
   /* ---------- admin ---------- */
   #admin{margin-top:22px;border-color:#7a2a35}
   #admin .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
@@ -182,6 +185,8 @@
           <div class="eyebrow">Current status</div>
           <h1 id="statusLine"><span class="asleep">Still asleep.</span></h1>
           <p id="statusSub">No sightings yet today. Get your guess in.</p>
+          <button class="btn announce" id="announceBtn" type="button" hidden>📣 Announce in group chat</button>
+          <div class="hint" id="announceHint"></div>
         </div>
         <div class="clock">
           <div class="eyebrow">Eastern time</div>
@@ -261,6 +266,21 @@
     <input type="text" id="nameInput" maxlength="24" placeholder="Your name" autocomplete="nickname" required>
     <div class="row"><button class="btn" type="submit">Enter greg.io</button></div>
   </form>
+</div>
+
+<!-- announce -->
+<div class="modal" id="announce">
+  <div class="dialog">
+    <h2>Tell the group chat</h2>
+    <p>Tap share, then pick your group chat in Messages.</p>
+    <div class="preview" id="announcePreview"></div>
+    <div class="row">
+      <button class="btn" type="button" id="announceShare">📣 Share</button>
+      <button class="btn ghost" type="button" id="announceCopy">Copy text</button>
+      <button class="btn ghost" type="button" id="announceClose">Close</button>
+    </div>
+    <div class="hint" id="announceModalHint"></div>
+  </div>
 </div>
 
 <!-- report confirm -->
@@ -362,6 +382,7 @@
       await post('/api/report', {name, mins});
       $('confirm').classList.remove('show');
       await refresh();
+      openAnnounce();
     } catch(err){ $('wakeHint').textContent = err.message; }
   });
   $('undoBtn').addEventListener('click', async () => {
@@ -430,6 +451,47 @@
     });
   }
 
+  // ---------- announce to group chat ----------
+  function announceText(){
+    const n = nowET(); const w = days[n.date]; if (!w) return '';
+    const rows = rankDay(n.date) || [];
+    let line;
+    if (!rows.length) line = 'Nobody guessed today. 😴';
+    else {
+      const best = rows.filter(r => r.rank === 1);
+      const miss = best[0].miss === 0 ? 'exact!' : `off by ${fmtMiss(best[0].miss)}`;
+      line = `🏆 ${best.length > 1 ? 'Winners' : 'Winner'}: ${best.map(r => r.name).join(' & ')} (${miss})`;
+    }
+    return `🚨 Greg is up! He woke at ${fmtMins(w.wakeMins)}.\n${line}\nFull board: ${location.origin}`;
+  }
+  function openAnnounce(){
+    const t = announceText(); if (!t) return;
+    $('announcePreview').textContent = t; $('announceModalHint').textContent = '';
+    $('announce').classList.add('show');
+  }
+  async function copyText(t){
+    try { await navigator.clipboard.writeText(t); return true; }
+    catch(e){
+      const ta = document.createElement('textarea'); ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.append(ta); ta.select(); let ok=false; try{ ok = document.execCommand('copy'); }catch(_){} ta.remove(); return ok;
+    }
+  }
+  async function shareAnnounce(hintEl){
+    const t = announceText(); if (!t) return;
+    if (navigator.share){
+      try { await navigator.share({text:t}); hintEl.textContent = 'Sent to the share sheet.'; hintEl.className='hint ok'; return; }
+      catch(e){ if (e && e.name === 'AbortError') return; }
+    }
+    const ok = await copyText(t);
+    hintEl.textContent = ok ? 'Copied! Paste it into the group chat.' : 'Couldn\u2019t copy. Use the text above.';
+    hintEl.className = ok ? 'hint ok' : 'hint err';
+  }
+  $('announceBtn').addEventListener('click', openAnnounce);
+  $('announceShare').addEventListener('click', () => shareAnnounce($('announceModalHint')));
+  $('announceCopy').addEventListener('click', async () => { const ok = await copyText(announceText());
+    $('announceModalHint').textContent = ok ? 'Copied! Paste it into the group chat.' : 'Couldn\u2019t copy.'; $('announceModalHint').className = ok ? 'hint ok':'hint err'; });
+  $('announceClose').addEventListener('click', () => $('announce').classList.remove('show'));
+
   // ---------- scoring ----------
   function rankDay(date){
     const w = days[date]; if (!w) return null;
@@ -470,6 +532,7 @@
       ? `Spotted awake at ${fmtMins(w.wakeMins)}, reported by ${w.reportedBy || 'someone'}.`
       : (todays.length ? `${todays.length} ${todays.length===1?'guess':'guesses'} on the board. Eyes on the bed.` : 'No sightings yet today. Get your guess in.');
     $('reportBtn').disabled = awake || readOnly || !db;
+    $('announceBtn').hidden = !awake;
     $('undoWrap').hidden = !awake || readOnly || !db;
 
     // prediction form
