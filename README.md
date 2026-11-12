@@ -41,3 +41,6 @@ certainly taken; something like greg-wakeup.com or a cheap .xyz will do).
 - Times and the daily reset run on Eastern time.
 - Pages refresh every 5 seconds, so everyone sees new guesses and the wake-up report almost immediately.
 - Names aren't password-protected, so it runs on the honour system, as before.
+
+## Admin panel
+Open gregio.vercel.app/#admin and unlock with the password stored in Vercel as ADMIN_PASSWORD (with the underscore).
